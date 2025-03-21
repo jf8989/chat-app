@@ -36,10 +36,9 @@ const StartStyles = StyleSheet.create({
         borderWidth: 1,
         width: '100%',
         padding: 10,
-        color: '#757083',
+        color: '#000000', // Change to black for better visibility
         fontSize: 16,
         fontWeight: '300',
-        opacity: 0.5,
     },
     colorSelection: {
         width: '88%',

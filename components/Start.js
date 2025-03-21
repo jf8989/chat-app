@@ -47,7 +47,7 @@ const Start = ({ navigation }) => {
                                 value={name}
                                 onChangeText={setName}
                                 placeholder="Your Name"
-                                placeholderTextColor="#757083"
+                                placeholderTextColor="rgba(117, 112, 131, 0.5)" // Apply opacity only to placeholder
                             />
                         </View>
 
