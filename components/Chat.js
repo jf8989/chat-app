@@ -11,16 +11,18 @@ import {
     Keyboard
 } from 'react-native';
 import styles from './ChatStyles';
+import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
 
 /**
  * Chat component - Provides a chat interface for sending and receiving messages
  * @param {Object} route - Contains route parameters from navigation
  * @param {Object} navigation - Navigation object for screen actions
+ * @param {Object} db - Firestore database instance
  * @returns {JSX.Element} - Rendered Chat component
  */
-const Chat = ({ route, navigation }) => {
-    // Extract name and background color from route parameters
-    const { name, backgroundColor } = route.params;
+const Chat = ({ route, navigation, db }) => {
+    // Extract name, user ID and background color from route parameters
+    const { name, userID, backgroundColor } = route.params;
 
     // State for messages and input text
     const [messages, setMessages] = useState([]);
@@ -29,47 +31,62 @@ const Chat = ({ route, navigation }) => {
     // Create a ref for the text input
     const inputRef = useRef(null);
 
-    // Initialize with static messages when component mounts
+    // Set up Firestore listener for messages when component mounts
     useEffect(() => {
-        setMessages([
-            {
-                _id: 1,
-                text: 'Hello developer',
-                createdAt: new Date(),
-                user: {
-                    _id: 2,
-                    name: 'React Native',
-                },
-                system: false,
-            },
-            {
-                _id: 2,
-                text: `${name} has entered the chat`,
-                createdAt: new Date(),
-                system: true,
-            }
-        ]);
+        // Set screen title with username
+        navigation.setOptions({ title: name });
+
+        // Create query for messages sorted by creation time (newest first)
+        const q = query(
+            collection(db, "messages"),
+            orderBy("createdAt", "desc")
+        );
+
+        // Set up real-time listener for messages
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            let newMessages = [];
+            querySnapshot.forEach(doc => {
+                // Get data from each message document
+                const messageData = doc.data();
+                // Convert Firestore timestamp to Date object
+                const createdAt = messageData.createdAt ? new Date(messageData.createdAt.toMillis()) : new Date();
+
+                newMessages.push({
+                    _id: doc.id,
+                    text: messageData.text,
+                    createdAt: createdAt,
+                    user: messageData.user,
+                    system: messageData.system || false
+                });
+            });
+
+            // Update state with new messages
+            setMessages(newMessages);
+        });
+
+        // Clean up listener on component unmount
+        return () => unsubscribe();
     }, []);
 
     /**
      * Handle sending a new message
-     * Creates a new message object and adds it to the messages state
+     * Creates a new message object and adds it to Firestore
      */
     const handleSend = () => {
         if (inputText.trim() === '') return;
 
         const newMessage = {
-            _id: Math.random().toString(),
             text: inputText,
             createdAt: new Date(),
             user: {
-                _id: 1, // Current user
+                _id: userID,
                 name: name,
             },
             system: false,
         };
 
-        setMessages(previousMessages => [newMessage, ...previousMessages]);
+        // Add message to Firestore
+        addDoc(collection(db, "messages"), newMessage);
         setInputText('');
     };
 
@@ -89,7 +106,7 @@ const Chat = ({ route, navigation }) => {
         }
 
         // User message (right) or received message (left)
-        const isCurrentUser = item.user._id === 1;
+        const isCurrentUser = item.user._id === userID;
         return (
             <View style={[
                 styles.messageContainer,

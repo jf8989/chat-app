@@ -8,13 +8,18 @@ import {
     ImageBackground,
     Platform,
     KeyboardAvoidingView,
+    Alert,
 } from 'react-native';
 import styles from './StartStyles'; // Import the styles
+import { getAuth, signInAnonymously } from "firebase/auth";
 
 const Start = ({ navigation }) => {
     // State variables
     const [name, setName] = useState('');
     const [backgroundColor, setBackgroundColor] = useState('#090C08');
+
+    // Initialize Firebase Authentication
+    const auth = getAuth();
 
     // Background colors for chat
     const colors = {
@@ -22,6 +27,27 @@ const Start = ({ navigation }) => {
         purple: '#474056',
         grey: '#8A95A5',
         green: '#B9C6AE'
+    };
+
+    /**
+     * Handle anonymous authentication and navigation to the Chat screen
+     * Uses Firebase's anonymous authentication to create a user ID
+     */
+    const handleStartChatting = () => {
+        // Sign in anonymously
+        signInAnonymously(auth)
+            .then(result => {
+                // Navigate to Chat screen with user info
+                navigation.navigate("Chat", {
+                    userID: result.user.uid,
+                    name: name || 'Anonymous User',
+                    backgroundColor
+                });
+            })
+            .catch(error => {
+                console.log('Authentication failed: ', error);
+                Alert.alert("Authentication failed", "Failed to sign in anonymously");
+            });
     };
 
     return (
@@ -79,12 +105,7 @@ const Start = ({ navigation }) => {
 
                         <TouchableOpacity
                             style={styles.button}
-                            onPress={() => {
-                                navigation.navigate('Chat', {
-                                    name: name || 'Anonymous User',
-                                    backgroundColor
-                                });
-                            }}
+                            onPress={handleStartChatting}
                         >
                             <Text style={styles.buttonText}>Start Chatting</Text>
                         </TouchableOpacity>
