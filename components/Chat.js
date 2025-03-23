@@ -12,15 +12,17 @@ import {
 } from 'react-native';
 import styles from './ChatStyles';
 import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
  * Chat component - Provides a chat interface for sending and receiving messages
  * @param {Object} route - Contains route parameters from navigation
  * @param {Object} navigation - Navigation object for screen actions
  * @param {Object} db - Firestore database instance
+ * @param {Boolean} isConnected - Network connectivity status
  * @returns {JSX.Element} - Rendered Chat component
  */
-const Chat = ({ route, navigation, db }) => {
+const Chat = ({ route, navigation, db, isConnected }) => {
     // Extract name, user ID and background color from route parameters
     const { name, userID, backgroundColor } = route.params;
 
@@ -31,42 +33,79 @@ const Chat = ({ route, navigation, db }) => {
     // Create a ref for the text input
     const inputRef = useRef(null);
 
+    /**
+     * Cache messages to AsyncStorage for offline access
+     * @param {Array} messagesToCache - Messages array to store
+     */
+    const cacheMessages = async (messagesToCache) => {
+        try {
+            await AsyncStorage.setItem('messages', JSON.stringify(messagesToCache));
+        } catch (error) {
+            console.error('Error caching messages: ', error);
+        }
+    };
+
+    /**
+     * Load cached messages from AsyncStorage
+     */
+    const loadCachedMessages = async () => {
+        try {
+            const cachedMessages = await AsyncStorage.getItem('messages');
+            if (cachedMessages) {
+                setMessages(JSON.parse(cachedMessages));
+            }
+        } catch (error) {
+            console.error('Error loading cached messages: ', error);
+        }
+    };
+
     // Set up Firestore listener for messages when component mounts
     useEffect(() => {
         // Set screen title with username
         navigation.setOptions({ title: name });
 
-        // Create query for messages sorted by creation time (newest first)
-        const q = query(
-            collection(db, "messages"),
-            orderBy("createdAt", "desc")
-        );
+        let unsubscribe = null;
 
-        // Set up real-time listener for messages
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            let newMessages = [];
-            querySnapshot.forEach(doc => {
-                // Get data from each message document
-                const messageData = doc.data();
-                // Convert Firestore timestamp to Date object
-                const createdAt = messageData.createdAt ? new Date(messageData.createdAt.toMillis()) : new Date();
+        if (isConnected) {
+            // Create query for messages sorted by creation time (newest first)
+            const q = query(
+                collection(db, "messages"),
+                orderBy("createdAt", "desc")
+            );
 
-                newMessages.push({
-                    _id: doc.id,
-                    text: messageData.text,
-                    createdAt: createdAt,
-                    user: messageData.user,
-                    system: messageData.system || false
+            // Set up real-time listener for messages when online
+            unsubscribe = onSnapshot(q, (querySnapshot) => {
+                let newMessages = [];
+                querySnapshot.forEach(doc => {
+                    // Get data from each message document
+                    const messageData = doc.data();
+                    // Convert Firestore timestamp to Date object
+                    const createdAt = messageData.createdAt ? new Date(messageData.createdAt.toMillis()) : new Date();
+
+                    newMessages.push({
+                        _id: doc.id,
+                        text: messageData.text,
+                        createdAt: createdAt,
+                        user: messageData.user,
+                        system: messageData.system || false
+                    });
                 });
-            });
 
-            // Update state with new messages
-            setMessages(newMessages);
-        });
+                // Update state with new messages
+                setMessages(newMessages);
+                // Cache messages for offline access
+                cacheMessages(newMessages);
+            });
+        } else {
+            // Load messages from cache when offline
+            loadCachedMessages();
+        }
 
         // Clean up listener on component unmount
-        return () => unsubscribe();
-    }, []);
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [isConnected]);
 
     /**
      * Handle sending a new message
@@ -137,7 +176,7 @@ const Chat = ({ route, navigation, db }) => {
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={[styles.container, { backgroundColor }]}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 30} // Increased offset for Android to help with visibility
         >
             {/* Message list - inverted to show newest messages at the bottom */}
             <FlatList
@@ -148,28 +187,30 @@ const Chat = ({ route, navigation, db }) => {
                 inverted
             />
 
-            {/* Message input area */}
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    value={inputText}
-                    onChangeText={setInputText}
-                    placeholder="Type a message..."
-                    placeholderTextColor="#999"
-                    ref={inputRef}
-                    returnKeyType="send"
-                    onSubmitEditing={handleSend}
-                />
-                <TouchableOpacity
-                    style={styles.sendButton}
-                    onPress={handleSend}
-                    accessible={true}
-                    accessibilityLabel="Send message"
-                    accessibilityHint="Sends your message to the chat"
-                >
-                    <Text style={styles.sendButtonText}>Send</Text>
-                </TouchableOpacity>
-            </View>
+            {/* Message input area - only shown when online */}
+            {isConnected && (
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        value={inputText}
+                        onChangeText={setInputText}
+                        placeholder="Type a message..."
+                        placeholderTextColor="#999"
+                        ref={inputRef}
+                        returnKeyType="send"
+                        onSubmitEditing={handleSend}
+                    />
+                    <TouchableOpacity
+                        style={styles.sendButton}
+                        onPress={handleSend}
+                        accessible={true}
+                        accessibilityLabel="Send message"
+                        accessibilityHint="Sends your message to the chat"
+                    >
+                        <Text style={styles.sendButtonText}>Send</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </KeyboardAvoidingView>
     );
 };
