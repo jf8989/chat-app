@@ -8,7 +8,8 @@ import {
     FlatList,
     KeyboardAvoidingView,
     Platform,
-    Keyboard
+    Keyboard,
+    StyleSheet
 } from 'react-native';
 import styles from './ChatStyles';
 import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
@@ -29,9 +30,36 @@ const Chat = ({ route, navigation, db, isConnected }) => {
     // State for messages and input text
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
+    const [keyboardOffset, setKeyboardOffset] = useState(0);
 
-    // Create a ref for the text input
+    // Create a ref for the text input and FlatList
     const inputRef = useRef(null);
+    const flatListRef = useRef(null);
+
+    // Handle keyboard show/hide events
+    useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener(
+            'keyboardDidShow',
+            (e) => {
+                // When keyboard shows, adjust view to make input visible
+                if (Platform.OS === 'android') {
+                    setKeyboardOffset(e.endCoordinates.height);
+                }
+            }
+        );
+
+        const keyboardDidHideListener = Keyboard.addListener(
+            'keyboardDidHide',
+            () => {
+                setKeyboardOffset(0);
+            }
+        );
+
+        return () => {
+            keyboardDidShowListener.remove();
+            keyboardDidHideListener.remove();
+        };
+    }, []);
 
     /**
      * Cache messages to AsyncStorage for offline access
@@ -173,23 +201,23 @@ const Chat = ({ route, navigation, db, isConnected }) => {
     };
 
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={[styles.container, { backgroundColor }]}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 30} // Increased offset for Android to help with visibility
-        >
+        <View style={[styles.container, { backgroundColor }]}>
             {/* Message list - inverted to show newest messages at the bottom */}
             <FlatList
+                ref={flatListRef}
                 data={messages}
                 renderItem={renderMessage}
                 keyExtractor={item => item._id.toString()}
-                style={styles.messagesList}
+                style={[styles.messagesList, { marginBottom: isConnected ? 60 : 0 }]}
                 inverted
             />
 
             {/* Message input area - only shown when online */}
             {isConnected && (
-                <View style={styles.inputContainer}>
+                <View style={[
+                    styles.inputContainer,
+                    { position: 'absolute', bottom: keyboardOffset, left: 0, right: 0 }
+                ]}>
                     <TextInput
                         style={styles.input}
                         value={inputText}
@@ -211,7 +239,7 @@ const Chat = ({ route, navigation, db, isConnected }) => {
                     </TouchableOpacity>
                 </View>
             )}
-        </KeyboardAvoidingView>
+        </View>
     );
 };
 
