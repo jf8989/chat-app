@@ -8,8 +8,7 @@ import {
     FlatList,
     KeyboardAvoidingView,
     Platform,
-    Keyboard,
-    StyleSheet
+    Keyboard
 } from 'react-native';
 import styles from './ChatStyles';
 import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
@@ -30,28 +29,24 @@ const Chat = ({ route, navigation, db, isConnected }) => {
     // State for messages and input text
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
-    const [keyboardOffset, setKeyboardOffset] = useState(0);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-    // Create a ref for the text input and FlatList
-    const inputRef = useRef(null);
+    // Create a ref for the FlatList
     const flatListRef = useRef(null);
 
-    // Handle keyboard show/hide events
+    // Setup keyboard listeners
     useEffect(() => {
         const keyboardDidShowListener = Keyboard.addListener(
             'keyboardDidShow',
-            (e) => {
-                // When keyboard shows, adjust view to make input visible
-                if (Platform.OS === 'android') {
-                    setKeyboardOffset(e.endCoordinates.height);
-                }
+            () => {
+                setKeyboardVisible(true);
             }
         );
 
         const keyboardDidHideListener = Keyboard.addListener(
             'keyboardDidHide',
             () => {
-                setKeyboardOffset(0);
+                setKeyboardVisible(false);
             }
         );
 
@@ -201,14 +196,22 @@ const Chat = ({ route, navigation, db, isConnected }) => {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor }]}>
-            {/* Message list - inverted to show newest messages at the bottom */}
+        <KeyboardAvoidingView
+            style={[styles.container, { backgroundColor }]}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 80}
+        >
+            {/* Message list */}
             <FlatList
                 ref={flatListRef}
                 data={messages}
                 renderItem={renderMessage}
                 keyExtractor={item => item._id.toString()}
-                style={[styles.messagesList, { marginBottom: isConnected ? 60 : 0 }]}
+                style={[
+                    styles.messagesList,
+                    { marginBottom: isConnected ? (keyboardVisible ? 0 : 60) : 0 }
+                ]}
+                contentContainerStyle={{ paddingBottom: keyboardVisible ? 80 : 10 }}
                 inverted
             />
 
@@ -216,7 +219,13 @@ const Chat = ({ route, navigation, db, isConnected }) => {
             {isConnected && (
                 <View style={[
                     styles.inputContainer,
-                    { position: 'absolute', bottom: keyboardOffset, left: 0, right: 0 }
+                    {
+                        position: 'absolute',
+                        bottom: keyboardVisible ? 0 : 0,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: '#fff'
+                    }
                 ]}>
                     <TextInput
                         style={styles.input}
@@ -224,7 +233,6 @@ const Chat = ({ route, navigation, db, isConnected }) => {
                         onChangeText={setInputText}
                         placeholder="Type a message..."
                         placeholderTextColor="#999"
-                        ref={inputRef}
                         returnKeyType="send"
                         onSubmitEditing={handleSend}
                     />
@@ -239,7 +247,7 @@ const Chat = ({ route, navigation, db, isConnected }) => {
                     </TouchableOpacity>
                 </View>
             )}
-        </View>
+        </KeyboardAvoidingView>
     );
 };
 
