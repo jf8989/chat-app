@@ -52,7 +52,12 @@ const App = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Start">
-        <Stack.Screen name="Start" component={Start} />
+        <Stack.Screen name="Start">
+          {props => <Start
+            isConnected={connectionStatus.isConnected}
+            {...props}
+          />}
+        </Stack.Screen>
         <Stack.Screen
           name="Chat"
           options={({ route }) => ({ title: route.params.name })}

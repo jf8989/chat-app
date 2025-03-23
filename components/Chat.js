@@ -75,7 +75,16 @@ const Chat = ({ route, navigation, db, isConnected }) => {
         try {
             const cachedMessages = await AsyncStorage.getItem('messages');
             if (cachedMessages) {
-                setMessages(JSON.parse(cachedMessages));
+                // Parse the cached messages
+                const parsedMessages = JSON.parse(cachedMessages);
+
+                // Convert createdAt strings back to Date objects
+                const messagesWithDateObjects = parsedMessages.map(message => ({
+                    ...message,
+                    createdAt: new Date(message.createdAt)
+                }));
+
+                setMessages(messagesWithDateObjects);
             }
         } catch (error) {
             console.error('Error loading cached messages: ', error);
@@ -169,6 +178,19 @@ const Chat = ({ route, navigation, db, isConnected }) => {
 
         // User message (right) or received message (left)
         const isCurrentUser = item.user._id === userID;
+
+        // Format time with fallback
+        let timeDisplay = "N/A";
+        try {
+            // Ensure createdAt is a Date object
+            const date = item.createdAt instanceof Date ?
+                item.createdAt : new Date(item.createdAt);
+
+            timeDisplay = `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+        } catch (error) {
+            console.log("Error formatting message time", error);
+        }
+
         return (
             <View style={[
                 styles.messageContainer,
@@ -188,7 +210,7 @@ const Chat = ({ route, navigation, db, isConnected }) => {
                         {item.text}
                     </Text>
                     <Text style={styles.messageTime}>
-                        {item.createdAt.getHours()}:{String(item.createdAt.getMinutes()).padStart(2, '0')}
+                        {timeDisplay}
                     </Text>
                 </View>
             </View>

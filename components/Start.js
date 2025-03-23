@@ -12,8 +12,9 @@ import {
 } from 'react-native';
 import styles from './StartStyles'; // Import the styles
 import { getAuth, signInAnonymously } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const Start = ({ navigation }) => {
+const Start = ({ navigation, isConnected }) => {
     // State variables
     const [name, setName] = useState('');
     const [backgroundColor, setBackgroundColor] = useState('#090C08');
@@ -34,12 +35,47 @@ const Start = ({ navigation }) => {
      * Uses Firebase's anonymous authentication to create a user ID
      */
     const handleStartChatting = () => {
-        // Sign in anonymously
+        // Check if we're offline
+        if (isConnected === false) {
+            // Try to get a saved userID from AsyncStorage
+            AsyncStorage.getItem('userID')
+                .then(savedUserID => {
+                    let userID = savedUserID;
+                    // If no saved ID, create a temporary one
+                    if (!userID) {
+                        userID = `offline-${Date.now().toString()}`;
+                    }
+
+                    // Navigate to Chat with offline user info
+                    navigation.navigate("Chat", {
+                        userID: userID,
+                        name: name || 'Anonymous User',
+                        backgroundColor
+                    });
+                })
+                .catch(error => {
+                    console.log('Error retrieving saved userID: ', error);
+                    // Use fallback temporary ID
+                    const tempUserID = `offline-${Date.now().toString()}`;
+                    navigation.navigate("Chat", {
+                        userID: tempUserID,
+                        name: name || 'Anonymous User',
+                        backgroundColor
+                    });
+                });
+            return;
+        }
+
+        // Online authentication
         signInAnonymously(auth)
             .then(result => {
+                // Save userID for offline use
+                const userID = result.user.uid;
+                AsyncStorage.setItem('userID', userID);
+
                 // Navigate to Chat screen with user info
                 navigation.navigate("Chat", {
-                    userID: result.user.uid,
+                    userID: userID,
                     name: name || 'Anonymous User',
                     backgroundColor
                 });
