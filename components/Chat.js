@@ -9,7 +9,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     Keyboard,
-    Image
+    Image,
+    Modal // Add Modal import
 } from 'react-native';
 import styles from './ChatStyles';
 import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
@@ -34,6 +35,8 @@ const Chat = ({ route, navigation, db, storage, isConnected }) => {
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [keyboardVisible, setKeyboardVisible] = useState(false);
+    // Add state for full-screen image
+    const [selectedImage, setSelectedImage] = useState(null);
 
     // Create a ref for the FlatList
     const flatListRef = useRef(null);
@@ -168,6 +171,14 @@ const Chat = ({ route, navigation, db, storage, isConnected }) => {
     };
 
     /**
+     * Handles opening an image in full-screen mode
+     * @param {String} imageUri - URI of the image to display
+     */
+    const handleImagePress = (imageUri) => {
+        setSelectedImage(imageUri);
+    };
+
+    /**
      * Renders an individual message in the chat
      * @param {Object} item - The message object to render
      * @returns {JSX.Element} - The rendered message component
@@ -220,13 +231,21 @@ const Chat = ({ route, navigation, db, storage, isConnected }) => {
                         </Text>
                     ) : null}
 
-                    {/* Render image if it exists */}
+                    {/* Render image if it exists - now touchable */}
                     {item.image && (
-                        <Image
-                            source={{ uri: item.image }}
-                            style={styles.messageImage}
-                            resizeMode="cover"
-                        />
+                        <TouchableOpacity
+                            onPress={() => handleImagePress(item.image)}
+                            accessible={true}
+                            accessibilityLabel="Chat image"
+                            accessibilityHint="Tap to view full-sized image"
+                            accessibilityRole="image"
+                        >
+                            <Image
+                                source={{ uri: item.image }}
+                                style={styles.messageImage}
+                                resizeMode="cover"
+                            />
+                        </TouchableOpacity>
                     )}
 
                     {/* Render location map if it exists */}
@@ -265,6 +284,32 @@ const Chat = ({ route, navigation, db, storage, isConnected }) => {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 80}
         >
+            {/* Full-screen image modal */}
+            <Modal
+                visible={selectedImage !== null}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setSelectedImage(null)}
+            >
+                <TouchableOpacity
+                    style={styles.fullscreenImageContainer}
+                    onPress={() => setSelectedImage(null)}
+                    accessible={true}
+                    accessibilityLabel="Full screen image view"
+                    accessibilityHint="Tap anywhere to close"
+                    accessibilityRole="button"
+                >
+                    <Image
+                        source={{ uri: selectedImage }}
+                        style={styles.fullscreenImage}
+                        resizeMode="contain"
+                    />
+                    <View style={styles.closeButtonContainer}>
+                        <Text style={styles.closeButtonText}>Tap anywhere to close</Text>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
             {/* Message list */}
             <FlatList
                 ref={flatListRef}

@@ -89,7 +89,7 @@ const ChatStyles = StyleSheet.create({
         color: '#FFF',
         fontWeight: 'bold',
     },
-    // New styles for images and maps
+    // Image and map styles
     messageImage: {
         width: 200,
         height: 200,
@@ -108,6 +108,31 @@ const ChatStyles = StyleSheet.create({
     map: {
         width: '100%',
         height: '100%',
+    },
+
+    // Full-screen image viewer styles
+    fullscreenImageContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    },
+    fullscreenImage: {
+        width: '100%',
+        height: '100%',
+    },
+    closeButtonContainer: {
+        position: 'absolute',
+        bottom: 30,
+        width: '100%',
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        padding: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        borderRadius: 20,
     }
 });
 
