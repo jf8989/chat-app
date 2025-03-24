@@ -16,7 +16,7 @@ This application provides users with a sleek chat interface and options to share
 
 ### ✨ Key Features
 
-- 🎨 **Personalized UI** - Choose your chat background color for a customized experience
+- 🎨 **Personalized UI** - Choose your chat background image for a customized experience
 - 💬 **Real-time Chat** - Exchange messages with friends and family instantly
 - 📷 **Image Sharing** - Send photos from your camera or library
 - 🗺️ **Location Sharing** - Let others know where you are with a tap
