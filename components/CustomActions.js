@@ -1,6 +1,14 @@
 // components/CustomActions.js
 import React from 'react';
-import { TouchableOpacity, View, Text, StyleSheet, Alert } from 'react-native';
+import {
+    TouchableOpacity,
+    View,
+    Text,
+    StyleSheet,
+    Alert,
+    Platform,
+    ActivityIndicator
+} from 'react-native';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -16,6 +24,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
  */
 const CustomActions = ({ onSend, storage, userID }) => {
     const { showActionSheetWithOptions } = useActionSheet();
+    const [uploading, setUploading] = React.useState(false);
 
     /**
      * Upload image to Firebase Storage and send it
@@ -23,6 +32,7 @@ const CustomActions = ({ onSend, storage, userID }) => {
      */
     const uploadAndSendImage = async (uri) => {
         try {
+            setUploading(true);
             console.log("Uploading image from URI:", uri);
             const response = await fetch(uri);
             const blob = await response.blob();
@@ -46,9 +56,11 @@ const CustomActions = ({ onSend, storage, userID }) => {
                 },
             }]);
             console.log("Image message sent");
+            setUploading(false);
         } catch (error) {
             console.error("Error uploading image: ", error);
             Alert.alert("Upload failed", "Failed to upload the image.");
+            setUploading(false);
         }
     };
 
@@ -64,7 +76,7 @@ const CustomActions = ({ onSend, storage, userID }) => {
             if (permissions?.granted) {
                 console.log("Launching image library picker...");
                 let result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images, // Fix: Use MediaTypeOptions instead of MediaType
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
                     allowsEditing: true,
                     aspect: [4, 3],
                     quality: 0.8,
@@ -138,6 +150,7 @@ const CustomActions = ({ onSend, storage, userID }) => {
      */
     const getLocation = async () => {
         try {
+            setUploading(true);
             console.log("Requesting location permissions...");
             let permissions = await Location.requestForegroundPermissionsAsync();
             console.log("Location permissions:", permissions);
@@ -169,9 +182,11 @@ const CustomActions = ({ onSend, storage, userID }) => {
                     [{ text: "OK" }]
                 );
             }
+            setUploading(false);
         } catch (error) {
             console.error("Error getting location: ", error);
             Alert.alert("Location Error", "Could not get your current location.");
+            setUploading(false);
         }
     };
 
@@ -206,32 +221,39 @@ const CustomActions = ({ onSend, storage, userID }) => {
 
     return (
         <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, uploading && styles.actionButtonDisabled]}
             onPress={onActionPress}
+            disabled={uploading}
             accessible={true}
             accessibilityLabel="Communication options"
             accessibilityHint="Choose to send an image, take a photo, or share your location"
             accessibilityRole="button"
         >
-            <Text style={styles.actionButtonText}>+</Text>
+            {uploading ? (
+                <ActivityIndicator size="small" color="#3478F6" />
+            ) : (
+                <Text style={styles.actionButtonText}>+</Text>
+            )}
         </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
     actionButton: {
-        width: 26,
-        height: 26,
-        marginRight: 10,
-        borderRadius: 13,
-        borderColor: '#b2b2b2',
-        borderWidth: 2,
+        width: 38,
+        height: 38,
         justifyContent: 'center',
         alignItems: 'center',
+        borderRadius: 19,
+        backgroundColor: '#F2F2F7',
+        marginLeft: 5,
+    },
+    actionButtonDisabled: {
+        backgroundColor: '#E5E5E5',
     },
     actionButtonText: {
-        color: '#b2b2b2',
-        fontSize: 16,
+        color: '#3478F6',
+        fontSize: 22,
         fontWeight: 'bold',
     }
 });

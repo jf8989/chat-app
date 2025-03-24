@@ -9,6 +9,7 @@ import {
     Platform,
     KeyboardAvoidingView,
     Alert,
+    Image
 } from 'react-native';
 import styles from './StartStyles'; // Import the styles
 import { signInAnonymously } from "firebase/auth";
@@ -17,14 +18,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const Start = ({ navigation, isConnected, auth }) => {
     // State variables
     const [name, setName] = useState('');
-    const [backgroundColor, setBackgroundColor] = useState('#090C08');
+    const [backgroundImage, setBackgroundImage] = useState('background1');
 
-    // Background colors for chat
-    const colors = {
-        black: '#090C08',
-        purple: '#474056',
-        grey: '#8A95A5',
-        green: '#B9C6AE'
+    // Background images for chat
+    const backgrounds = {
+        background1: require('../assets/background1.png'),
+        background2: require('../assets/background2.png'),
+        background3: require('../assets/background3.png'),
+        background4: require('../assets/background4.png'),
+        background5: require('../assets/background5.png'),
+        background7: require('../assets/background7.png'),
     };
 
     /**
@@ -47,7 +50,7 @@ const Start = ({ navigation, isConnected, auth }) => {
                     navigation.navigate("Chat", {
                         userID: userID,
                         name: name || 'Anonymous User',
-                        backgroundColor
+                        backgroundImage
                     });
                 })
                 .catch(error => {
@@ -57,7 +60,7 @@ const Start = ({ navigation, isConnected, auth }) => {
                     navigation.navigate("Chat", {
                         userID: tempUserID,
                         name: name || 'Anonymous User',
-                        backgroundColor
+                        backgroundImage
                     });
                 });
             return;
@@ -74,7 +77,7 @@ const Start = ({ navigation, isConnected, auth }) => {
                 navigation.navigate("Chat", {
                     userID: userID,
                     name: name || 'Anonymous User',
-                    backgroundColor
+                    backgroundImage
                 });
             })
             .catch(error => {
@@ -106,33 +109,28 @@ const Start = ({ navigation, isConnected, auth }) => {
                                 value={name}
                                 onChangeText={setName}
                                 placeholder="Your Name"
-                                placeholderTextColor="rgba(117, 112, 131, 0.5)" // Apply opacity only to placeholder
+                                placeholderTextColor="rgba(117, 112, 131, 0.5)"
                             />
                         </View>
 
                         <View style={styles.colorSelection}>
-                            <Text style={styles.colorSelectionText}>Choose Background Color:</Text>
-                            <View style={styles.colorOptions}>
-                                <TouchableOpacity
-                                    style={[styles.colorOption, { backgroundColor: colors.black },
-                                    backgroundColor === colors.black && styles.selectedColor]}
-                                    onPress={() => setBackgroundColor(colors.black)}
-                                />
-                                <TouchableOpacity
-                                    style={[styles.colorOption, { backgroundColor: colors.purple },
-                                    backgroundColor === colors.purple && styles.selectedColor]}
-                                    onPress={() => setBackgroundColor(colors.purple)}
-                                />
-                                <TouchableOpacity
-                                    style={[styles.colorOption, { backgroundColor: colors.grey },
-                                    backgroundColor === colors.grey && styles.selectedColor]}
-                                    onPress={() => setBackgroundColor(colors.grey)}
-                                />
-                                <TouchableOpacity
-                                    style={[styles.colorOption, { backgroundColor: colors.green },
-                                    backgroundColor === colors.green && styles.selectedColor]}
-                                    onPress={() => setBackgroundColor(colors.green)}
-                                />
+                            <Text style={styles.colorSelectionText}>Choose Background Image:</Text>
+                            <View style={styles.backgroundOptions}>
+                                {Object.keys(backgrounds).map((key) => (
+                                    <TouchableOpacity
+                                        key={key}
+                                        style={[
+                                            styles.backgroundOption,
+                                            backgroundImage === key && styles.selectedBackground
+                                        ]}
+                                        onPress={() => setBackgroundImage(key)}
+                                    >
+                                        <Image
+                                            source={backgrounds[key]}
+                                            style={styles.backgroundThumbnail}
+                                        />
+                                    </TouchableOpacity>
+                                ))}
                             </View>
                         </View>
 
