@@ -64,7 +64,7 @@ const CustomActions = ({ onSend, storage, userID }) => {
             if (permissions?.granted) {
                 console.log("Launching image library picker...");
                 let result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ImagePicker.MediaType.Images, // Use MediaType instead of MediaTypeOptions
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images, // Fix: Use MediaTypeOptions instead of MediaType
                     allowsEditing: true,
                     aspect: [4, 3],
                     quality: 0.8,
