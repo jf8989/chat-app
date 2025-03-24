@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Alert } from 'react-native';
+import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
 // Import the screens
 import Start from './components/Start';
@@ -11,6 +12,7 @@ import Chat from './components/Chat';
 // Import Firebase
 import { initializeApp } from "firebase/app";
 import { getFirestore, disableNetwork, enableNetwork } from "firebase/firestore";
+import { getStorage } from "firebase/storage"; // Add this import
 
 // Import NetInfo for network connectivity
 import { useNetInfo } from "@react-native-community/netinfo";
@@ -20,7 +22,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBgqMkMAFepGPeLJnOKSs3tIwNrTYZlirs",
   authDomain: "chat-app-91caf.firebaseapp.com",
   projectId: "chat-app-91caf",
-  storageBucket: "chat-app-91caf.firebasestorage.app",
+  storageBucket: "chat-app-91caf.firebasestorage.app", // Make sure this matches your Firebase storage bucket
   messagingSenderId: "278481177904",
   appId: "1:278481177904:web:067c0f94579c24ca538cf5"
 };
@@ -30,6 +32,9 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore database
 const db = getFirestore(app);
+
+// Initialize Firebase Storage
+const storage = getStorage(app);
 
 // Create the navigator
 const Stack = createNativeStackNavigator();
@@ -50,26 +55,29 @@ const App = () => {
   }, [connectionStatus.isConnected]);
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Start">
-        <Stack.Screen name="Start">
-          {props => <Start
-            isConnected={connectionStatus.isConnected}
-            {...props}
-          />}
-        </Stack.Screen>
-        <Stack.Screen
-          name="Chat"
-          options={({ route }) => ({ title: route.params.name })}
-        >
-          {props => <Chat
-            isConnected={connectionStatus.isConnected}
-            db={db}
-            {...props}
-          />}
-        </Stack.Screen>
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ActionSheetProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Start">
+          <Stack.Screen name="Start">
+            {props => <Start
+              isConnected={connectionStatus.isConnected}
+              {...props}
+            />}
+          </Stack.Screen>
+          <Stack.Screen
+            name="Chat"
+            options={({ route }) => ({ title: route.params.name })}
+          >
+            {props => <Chat
+              isConnected={connectionStatus.isConnected}
+              db={db}
+              storage={storage} // Pass storage to Chat component
+              {...props}
+            />}
+          </Stack.Screen>
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ActionSheetProvider>
   );
 }
 

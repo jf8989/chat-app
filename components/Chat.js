@@ -8,21 +8,25 @@ import {
     FlatList,
     KeyboardAvoidingView,
     Platform,
-    Keyboard
+    Keyboard,
+    Image
 } from 'react-native';
 import styles from './ChatStyles';
 import { collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomActions from './CustomActions';
+import MapView, { Marker } from 'react-native-maps';
 
 /**
  * Chat component - Provides a chat interface for sending and receiving messages
  * @param {Object} route - Contains route parameters from navigation
  * @param {Object} navigation - Navigation object for screen actions
  * @param {Object} db - Firestore database instance
+ * @param {Object} storage - Firebase storage instance
  * @param {Boolean} isConnected - Network connectivity status
  * @returns {JSX.Element} - Rendered Chat component
  */
-const Chat = ({ route, navigation, db, isConnected }) => {
+const Chat = ({ route, navigation, db, storage, isConnected }) => {
     // Extract name, user ID and background color from route parameters
     const { name, userID, backgroundColor } = route.params;
 
@@ -116,9 +120,11 @@ const Chat = ({ route, navigation, db, isConnected }) => {
 
                     newMessages.push({
                         _id: doc.id,
-                        text: messageData.text,
+                        text: messageData.text || "",  // Handle messages without text
                         createdAt: createdAt,
                         user: messageData.user,
+                        image: messageData.image || null,  // Add image field
+                        location: messageData.location || null,  // Add location field
                         system: messageData.system || false
                     });
                 });
@@ -140,7 +146,7 @@ const Chat = ({ route, navigation, db, isConnected }) => {
     }, [isConnected]);
 
     /**
-     * Handle sending a new message
+     * Handle sending a new text message
      * Creates a new message object and adds it to Firestore
      */
     const handleSend = () => {
@@ -159,6 +165,46 @@ const Chat = ({ route, navigation, db, isConnected }) => {
         // Add message to Firestore
         addDoc(collection(db, "messages"), newMessage);
         setInputText('');
+    };
+
+    /**
+     * Handle sending an image message
+     * @param {String} imageUrl - URL of the image to send
+     */
+    const handleSendImage = (imageUrl) => {
+        const newMessage = {
+            text: "",
+            image: imageUrl,
+            createdAt: new Date(),
+            user: {
+                _id: userID,
+                name: name,
+            },
+            system: false,
+        };
+
+        // Add message to Firestore
+        addDoc(collection(db, "messages"), newMessage);
+    };
+
+    /**
+     * Handle sending a location message
+     * @param {Object} location - Object containing latitude and longitude
+     */
+    const handleSendLocation = (location) => {
+        const newMessage = {
+            text: "",
+            location: location,
+            createdAt: new Date(),
+            user: {
+                _id: userID,
+                name: name,
+            },
+            system: false,
+        };
+
+        // Add message to Firestore
+        addDoc(collection(db, "messages"), newMessage);
     };
 
     /**
@@ -203,12 +249,48 @@ const Chat = ({ route, navigation, db, isConnected }) => {
                     {!isCurrentUser && (
                         <Text style={styles.messageUsername}>{item.user.name}</Text>
                     )}
-                    <Text style={[
-                        styles.messageText,
-                        isCurrentUser ? styles.userMessageText : styles.receivedMessageText
-                    ]}>
-                        {item.text}
-                    </Text>
+
+                    {/* Render text message if it exists */}
+                    {item.text ? (
+                        <Text style={[
+                            styles.messageText,
+                            isCurrentUser ? styles.userMessageText : styles.receivedMessageText
+                        ]}>
+                            {item.text}
+                        </Text>
+                    ) : null}
+
+                    {/* Render image if it exists */}
+                    {item.image && (
+                        <Image
+                            source={{ uri: item.image }}
+                            style={styles.messageImage}
+                            resizeMode="cover"
+                        />
+                    )}
+
+                    {/* Render location map if it exists */}
+                    {item.location && (
+                        <View style={styles.mapContainer}>
+                            <MapView
+                                style={styles.map}
+                                initialRegion={{
+                                    latitude: item.location.latitude,
+                                    longitude: item.location.longitude,
+                                    latitudeDelta: 0.0922,
+                                    longitudeDelta: 0.0421,
+                                }}
+                            >
+                                <Marker
+                                    coordinate={{
+                                        latitude: item.location.latitude,
+                                        longitude: item.location.longitude,
+                                    }}
+                                />
+                            </MapView>
+                        </View>
+                    )}
+
                     <Text style={styles.messageTime}>
                         {timeDisplay}
                     </Text>
@@ -249,6 +331,12 @@ const Chat = ({ route, navigation, db, isConnected }) => {
                         backgroundColor: '#fff'
                     }
                 ]}>
+                    <CustomActions
+                        onSendImage={handleSendImage}
+                        onSendLocation={handleSendLocation}
+                        storage={storage}
+                        userID={userID}
+                    />
                     <TextInput
                         style={styles.input}
                         value={inputText}

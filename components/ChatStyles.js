@@ -67,6 +67,7 @@ const ChatStyles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#EEE',
         backgroundColor: '#FFF',
+        alignItems: 'center',
     },
     input: {
         flex: 1,
@@ -87,6 +88,26 @@ const ChatStyles = StyleSheet.create({
     sendButtonText: {
         color: '#FFF',
         fontWeight: 'bold',
+    },
+    // New styles for images and maps
+    messageImage: {
+        width: 200,
+        height: 200,
+        borderRadius: 10,
+        marginTop: 5,
+        marginBottom: 5,
+    },
+    mapContainer: {
+        width: 200,
+        height: 150,
+        marginTop: 5,
+        marginBottom: 5,
+        borderRadius: 10,
+        overflow: 'hidden',
+    },
+    map: {
+        width: '100%',
+        height: '100%',
     }
 });
 
