@@ -11,16 +11,13 @@ import {
     Alert,
 } from 'react-native';
 import styles from './StartStyles'; // Import the styles
-import { getAuth, signInAnonymously } from "firebase/auth";
+import { signInAnonymously } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const Start = ({ navigation, isConnected }) => {
+const Start = ({ navigation, isConnected, auth }) => {
     // State variables
     const [name, setName] = useState('');
     const [backgroundColor, setBackgroundColor] = useState('#090C08');
-
-    // Initialize Firebase Authentication
-    const auth = getAuth();
 
     // Background colors for chat
     const colors = {
@@ -66,7 +63,7 @@ const Start = ({ navigation, isConnected }) => {
             return;
         }
 
-        // Online authentication
+        // Online authentication - use the passed auth instance
         signInAnonymously(auth)
             .then(result => {
                 // Save userID for offline use

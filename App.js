@@ -12,7 +12,9 @@ import Chat from './components/Chat';
 // Import Firebase
 import { initializeApp } from "firebase/app";
 import { getFirestore, disableNetwork, enableNetwork } from "firebase/firestore";
-import { getStorage } from "firebase/storage"; // Add this import
+import { getStorage } from "firebase/storage";
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import NetInfo for network connectivity
 import { useNetInfo } from "@react-native-community/netinfo";
@@ -22,7 +24,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBgqMkMAFepGPeLJnOKSs3tIwNrTYZlirs",
   authDomain: "chat-app-91caf.firebaseapp.com",
   projectId: "chat-app-91caf",
-  storageBucket: "chat-app-91caf.firebasestorage.app", // Make sure this matches your Firebase storage bucket
+  storageBucket: "chat-app-91caf.firebasestorage.app", // Correct bucket from Firebase console
   messagingSenderId: "278481177904",
   appId: "1:278481177904:web:067c0f94579c24ca538cf5"
 };
@@ -35,6 +37,11 @@ const db = getFirestore(app);
 
 // Initialize Firebase Storage
 const storage = getStorage(app);
+
+// Initialize Firebase Authentication with AsyncStorage persistence
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
 
 // Create the navigator
 const Stack = createNativeStackNavigator();
@@ -61,6 +68,7 @@ const App = () => {
           <Stack.Screen name="Start">
             {props => <Start
               isConnected={connectionStatus.isConnected}
+              auth={auth} // Pass auth to Start component
               {...props}
             />}
           </Stack.Screen>
@@ -71,7 +79,7 @@ const App = () => {
             {props => <Chat
               isConnected={connectionStatus.isConnected}
               db={db}
-              storage={storage} // Pass storage to Chat component
+              storage={storage}
               {...props}
             />}
           </Stack.Screen>

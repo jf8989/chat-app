@@ -1,18 +1,17 @@
 // .metro.config.js
 const { getDefaultConfig } = require('expo/metro-config');
+const exclusionList = require('metro-config/src/defaults/exclusionList');
 
-const config = getDefaultConfig(__dirname);
+module.exports = (() => {
+    const config = getDefaultConfig(__dirname);
 
-// Add exclusions for problematic Firebase paths
-config.resolver.blacklistRE = [
-    /node_modules[/\\].*[/\\]firebase[/\\].*[/\\]dist[/\\]esm[/\\].*[/\\]firestore/,
-    /node_modules[/\\].*[/\\]firebase[/\\].*[/\\]dist[/\\].*[/\\]platform_react_native/,
-    /node_modules[/\\].*[/\\]firebase[/\\].*[/\\]dist[/\\].*[/\\]compat[/\\]auth/,
-    /node_modules[/\\].*[/\\]firebase[/\\].*[/\\]dist[/\\].*[/\\]compat[/\\]database/,
-];
+    config.resolver = {
+        ...config.resolver,
+        blacklistRE: exclusionList([
+            // exclude any hidden .firebase-xyz folders
+            /node_modules\/\.firebase.*\/.*/,
+        ]),
+    };
 
-// Use CommonJS for all node_modules
-config.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'cjs', 'json'];
-config.resolver.assetExts = ['pb', 'ttf', 'html'];
-
-module.exports = config;
+    return config;
+})();

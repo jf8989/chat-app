@@ -168,46 +168,6 @@ const Chat = ({ route, navigation, db, storage, isConnected }) => {
     };
 
     /**
-     * Handle sending an image message
-     * @param {String} imageUrl - URL of the image to send
-     */
-    const handleSendImage = (imageUrl) => {
-        const newMessage = {
-            text: "",
-            image: imageUrl,
-            createdAt: new Date(),
-            user: {
-                _id: userID,
-                name: name,
-            },
-            system: false,
-        };
-
-        // Add message to Firestore
-        addDoc(collection(db, "messages"), newMessage);
-    };
-
-    /**
-     * Handle sending a location message
-     * @param {Object} location - Object containing latitude and longitude
-     */
-    const handleSendLocation = (location) => {
-        const newMessage = {
-            text: "",
-            location: location,
-            createdAt: new Date(),
-            user: {
-                _id: userID,
-                name: name,
-            },
-            system: false,
-        };
-
-        // Add message to Firestore
-        addDoc(collection(db, "messages"), newMessage);
-    };
-
-    /**
      * Renders an individual message in the chat
      * @param {Object} item - The message object to render
      * @returns {JSX.Element} - The rendered message component
@@ -332,10 +292,17 @@ const Chat = ({ route, navigation, db, storage, isConnected }) => {
                     }
                 ]}>
                     <CustomActions
-                        onSendImage={handleSendImage}
-                        onSendLocation={handleSendLocation}
                         storage={storage}
                         userID={userID}
+                        onSend={(messages) => {
+                            console.log("onSend called with messages:", messages);
+                            // Add the message to Firestore
+                            if (messages && messages.length > 0) {
+                                addDoc(collection(db, "messages"), messages[0])
+                                    .then(() => console.log("Message added to Firestore"))
+                                    .catch(error => console.error("Error adding message:", error));
+                            }
+                        }}
                     />
                     <TextInput
                         style={styles.input}

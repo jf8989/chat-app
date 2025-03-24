@@ -9,13 +9,12 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 /**
  * CustomActions component - Provides action buttons for additional chat features
  * @param {Object} props - Component props
- * @param {Object} props.wrapperStyle - Style for wrapper
- * @param {Function} props.onSend - Function to send messages
+ * @param {Function} props.onSend - Function to send messages (from GiftedChat)
  * @param {Object} props.storage - Firebase storage reference
  * @param {String} props.userID - Current user ID
  * @returns {JSX.Element} - Rendered component
  */
-const CustomActions = ({ wrapperStyle, iconTextStyle, onSend, storage, userID }) => {
+const CustomActions = ({ onSend, storage, userID }) => {
     const { showActionSheetWithOptions } = useActionSheet();
 
     /**
@@ -24,24 +23,29 @@ const CustomActions = ({ wrapperStyle, iconTextStyle, onSend, storage, userID })
      */
     const uploadAndSendImage = async (uri) => {
         try {
+            console.log("Uploading image from URI:", uri);
             const response = await fetch(uri);
             const blob = await response.blob();
             const imageRef = ref(storage, `images/${userID}-${Date.now()}`);
 
+            console.log("Uploading to Firebase Storage...");
             // Upload image to Firebase Storage
             await uploadBytes(imageRef, blob);
 
+            console.log("Getting download URL...");
             // Get the download URL for the image
             const imageURL = await getDownloadURL(imageRef);
+            console.log("Image URL obtained:", imageURL);
 
-            // Send the image message
-            onSend({
+            // Send the image message using onSend from GiftedChat
+            onSend([{
                 image: imageURL,
                 createdAt: new Date(),
                 user: {
                     _id: userID,
                 },
-            });
+            }]);
+            console.log("Image message sent");
         } catch (error) {
             console.error("Error uploading image: ", error);
             Alert.alert("Upload failed", "Failed to upload the image.");
@@ -52,22 +56,40 @@ const CustomActions = ({ wrapperStyle, iconTextStyle, onSend, storage, userID })
      * Pick image from device library
      */
     const pickImage = async () => {
-        let permissions = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        try {
+            console.log("Requesting media library permissions...");
+            let permissions = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            console.log("Permissions response:", permissions);
 
-        if (permissions?.granted) {
-            let result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [4, 3],
-                quality: 0.8,
-            });
+            if (permissions?.granted) {
+                console.log("Launching image library picker...");
+                let result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaType.Images, // Use MediaType instead of MediaTypeOptions
+                    allowsEditing: true,
+                    aspect: [4, 3],
+                    quality: 0.8,
+                });
 
-            if (!result.canceled) {
-                const imageURI = result.assets[0].uri;
-                uploadAndSendImage(imageURI);
+                console.log("Image picker result:", result);
+
+                if (!result.canceled && result.assets && result.assets.length > 0) {
+                    const imageURI = result.assets[0].uri;
+                    console.log("Selected image URI:", imageURI);
+                    uploadAndSendImage(imageURI);
+                } else {
+                    console.log("Image selection was canceled or no assets returned");
+                }
+            } else {
+                console.log("Media library permission denied");
+                Alert.alert(
+                    "Permission Required",
+                    "This app needs permission to access your photo library.",
+                    [{ text: "OK" }]
+                );
             }
-        } else {
-            Alert.alert("Permissions required", "Permission to access the library is required.");
+        } catch (error) {
+            console.error("Error picking image:", error);
+            Alert.alert("Error", "Something went wrong when trying to access your photos.");
         }
     };
 
@@ -75,21 +97,39 @@ const CustomActions = ({ wrapperStyle, iconTextStyle, onSend, storage, userID })
      * Take photo with device camera
      */
     const takePhoto = async () => {
-        let permissions = await ImagePicker.requestCameraPermissionsAsync();
+        try {
+            console.log("Requesting camera permissions...");
+            let permissions = await ImagePicker.requestCameraPermissionsAsync();
+            console.log("Camera permissions:", permissions);
 
-        if (permissions?.granted) {
-            let result = await ImagePicker.launchCameraAsync({
-                allowsEditing: true,
-                aspect: [4, 3],
-                quality: 0.8,
-            });
+            if (permissions?.granted) {
+                console.log("Launching camera...");
+                let result = await ImagePicker.launchCameraAsync({
+                    allowsEditing: true,
+                    aspect: [4, 3],
+                    quality: 0.8,
+                });
 
-            if (!result.canceled) {
-                const imageURI = result.assets[0].uri;
-                uploadAndSendImage(imageURI);
+                console.log("Camera result:", result);
+
+                if (!result.canceled && result.assets && result.assets.length > 0) {
+                    const imageURI = result.assets[0].uri;
+                    console.log("Captured image URI:", imageURI);
+                    uploadAndSendImage(imageURI);
+                } else {
+                    console.log("Photo capture was canceled or no assets returned");
+                }
+            } else {
+                console.log("Camera permission denied");
+                Alert.alert(
+                    "Permission Required",
+                    "This app needs permission to use your camera.",
+                    [{ text: "OK" }]
+                );
             }
-        } else {
-            Alert.alert("Permissions required", "Permission to use the camera is required.");
+        } catch (error) {
+            console.error("Error taking photo:", error);
+            Alert.alert("Error", "Something went wrong when trying to use the camera.");
         }
     };
 
@@ -97,14 +137,19 @@ const CustomActions = ({ wrapperStyle, iconTextStyle, onSend, storage, userID })
      * Get and send current location
      */
     const getLocation = async () => {
-        let permissions = await Location.requestForegroundPermissionsAsync();
+        try {
+            console.log("Requesting location permissions...");
+            let permissions = await Location.requestForegroundPermissionsAsync();
+            console.log("Location permissions:", permissions);
 
-        if (permissions?.granted) {
-            try {
+            if (permissions?.granted) {
+                console.log("Getting current position...");
                 const location = await Location.getCurrentPositionAsync({});
+                console.log("Location obtained:", location);
 
                 if (location) {
-                    onSend({
+                    // Send the location message using onSend from GiftedChat
+                    onSend([{
                         location: {
                             longitude: location.coords.longitude,
                             latitude: location.coords.latitude,
@@ -113,14 +158,20 @@ const CustomActions = ({ wrapperStyle, iconTextStyle, onSend, storage, userID })
                         user: {
                             _id: userID,
                         },
-                    });
+                    }]);
+                    console.log("Location message sent");
                 }
-            } catch (error) {
-                console.error("Error getting location: ", error);
-                Alert.alert("Location Error", "Could not get your current location.");
+            } else {
+                console.log("Location permission denied");
+                Alert.alert(
+                    "Permission Required",
+                    "This app needs permission to access your location.",
+                    [{ text: "OK" }]
+                );
             }
-        } else {
-            Alert.alert("Permissions required", "Permission to access location is required.");
+        } catch (error) {
+            console.error("Error getting location: ", error);
+            Alert.alert("Location Error", "Could not get your current location.");
         }
     };
 
@@ -137,6 +188,7 @@ const CustomActions = ({ wrapperStyle, iconTextStyle, onSend, storage, userID })
                 cancelButtonIndex,
             },
             async (buttonIndex) => {
+                console.log("Selected option index:", buttonIndex);
                 switch (buttonIndex) {
                     case 0:
                         pickImage();
@@ -154,41 +206,34 @@ const CustomActions = ({ wrapperStyle, iconTextStyle, onSend, storage, userID })
 
     return (
         <TouchableOpacity
-            style={styles.container}
+            style={styles.actionButton}
             onPress={onActionPress}
             accessible={true}
             accessibilityLabel="Communication options"
             accessibilityHint="Choose to send an image, take a photo, or share your location"
             accessibilityRole="button"
         >
-            <View style={[styles.wrapper, wrapperStyle]}>
-                <Text style={[styles.iconText, iconTextStyle]}>+</Text>
-            </View>
+            <Text style={styles.actionButtonText}>+</Text>
         </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    actionButton: {
         width: 26,
         height: 26,
-        marginLeft: 10,
-        marginBottom: 10,
-    },
-    wrapper: {
+        marginRight: 10,
         borderRadius: 13,
         borderColor: '#b2b2b2',
         borderWidth: 2,
-        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    iconText: {
+    actionButtonText: {
         color: '#b2b2b2',
         fontSize: 16,
         fontWeight: 'bold',
-        backgroundColor: 'transparent',
-    },
+    }
 });
 
 export default CustomActions;
